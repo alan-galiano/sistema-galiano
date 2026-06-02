@@ -1157,8 +1157,19 @@ function renderKm() {
 // DASHBOARD CON GRAFICOS
 // ============================================================
 const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo"];
-const STATS = {"Enero": {"fact": 12233500, "gan": 4814350, "ventas": 278, "efec": 12184700, "transf": 6953100, "c10": 210, "c15": 43, "c45": 90, "kg_b": 2745, "kg_p": 4050}, "Febrero": {"fact": 13611600, "gan": 5413700, "ventas": 322, "efec": 13551100, "transf": 7630400, "c10": 256, "c15": 55, "c45": 92, "kg_b": 3385, "kg_p": 4140}, "Marzo": {"fact": 19275000, "gan": 6209050, "ventas": 415, "efec": 19131000, "transf": 11632200, "c10": 321, "c15": 72, "c45": 127, "kg_b": 4290, "kg_p": 5715}, "Abril": {"fact": 22437400, "gan": 7119100, "ventas": 423, "efec": 21989600, "transf": 13795400, "c10": 340, "c15": 91, "c45": 124, "kg_b": 4765, "kg_p": 5580}, "Mayo": {"fact": 36119000, "gan": 11849450, "ventas": 635, "efec": 36026500, "transf": 20255500, "c10": 569, "c15": 126, "c45": 169, "kg_b": 7580, "kg_p": 7605}};
-const TOP10 = [{"n": "OTNIEL", "f": 2968700}, {"n": "FILOMENA", "f": 2582500}, {"n": "LUCHO", "f": 2381800}, {"n": "AZCUENAGA 5023", "f": 2318500}, {"n": "CAREN", "f": 2219000}, {"n": "EXE", "f": 2101000}, {"n": "SABOREAR", "f": 1869500}, {"n": "BRASERIA", "f": 1837000}, {"n": "TROPPO", "f": 1808000}, {"n": "PANA GENESIO", "f": 1514500}];
+const STATS = {
+  "Enero":   {"fact":12026500,  "gan":4722600,  "ventas":271, "efec":5095800,  "transf":6922100,  "c10":223, "c15":45,  "c45":89,  "kg_b":2905, "kg_p":4005},
+  "Febrero": {"fact":13006600,  "gan":5091200,  "ventas":312, "efec":5998200,  "transf":7008400,  "c10":264, "c15":58,  "c45":88,  "kg_b":3430, "kg_p":3960},
+  "Marzo":   {"fact":19275000,  "gan":6209050,  "ventas":415, "efec":7533300,  "transf":11632200, "c10":345, "c15":76,  "c45":127, "kg_b":4490, "kg_p":5715},
+  "Abril":   {"fact":23249400,  "gan":7533350,  "ventas":440, "efec":8636000,  "transf":14448400, "c10":387, "c15":97,  "c45":129, "kg_b":5000, "kg_p":5805},
+  "Mayo":    {"fact":36119000,  "gan":11849450, "ventas":635, "efec":15863500, "transf":20255500, "c10":630, "c15":131, "c45":169, "kg_b":9260, "kg_p":7605}
+};
+const TOP10 = [
+  {"n":"OTNIEL","f":2968700},{"n":"FILOMENA","f":2582500},{"n":"LUCHO","f":2381800},
+  {"n":"AZCUENAGA 5023","f":2318500},{"n":"CAREN","f":2219000},{"n":"EXE","f":2101000},
+  {"n":"SABOREAR","f":1869500},{"n":"BRASERIA","f":1837000},{"n":"TROPPO","f":1808000},
+  {"n":"PANA GENESIO","f":1514500}
+];
 let dashMes = 'Mayo';
 let donaChart = null;
 let chartsBuilt = false;
