@@ -402,7 +402,7 @@
         <div class="card">
           <div class="table-wrap">
             <table>
-              <thead><tr><th>Fecha</th><th>Cliente</th><th>Producto</th><th>Cant.</th><th>Total</th><th>Ganancia</th><th>Pago</th><th>Obs.</th></tr></thead>
+              <thead><tr><th>Hora</th><th>Cliente</th><th>Productos</th><th>Total</th><th>Ganancia</th><th>Pago</th></tr></thead>
               <tbody id="hist-body"></tbody>
             </table>
           </div>
@@ -909,8 +909,8 @@ function renderHistorial() {
   const body = document.getElementById('hist-body');
   const stats = document.getElementById('hist-stats');
   
-  const totalFact = ventas.reduce((s,v)=>s+v.total,0);
-  const totalGan = ventas.reduce((s,v)=>s+v.ganancia,0);
+  const totalFact = ventas.reduce((s,v)=>s+(Number(v.total)||0),0);
+  const totalGan = ventas.reduce((s,v)=>s+(Number(v.ganancia)||0),0);
   const pct = totalFact > 0 ? (totalGan/totalFact*100).toFixed(1) : 0;
   
   stats.innerHTML = `
@@ -921,18 +921,37 @@ function renderHistorial() {
   `;
   
   if(!ventas.length) { body.innerHTML = '<tr><td colspan="8" class="empty">Sin ventas en este período</td></tr>'; return; }
-  body.innerHTML = [...ventas].reverse().map(v =>
-    `<tr>
-      <td>${fmtDate(v.fecha)}</td>
-      <td><strong>#${v.clienteNum}</strong> ${v.clienteNombre}</td>
-      <td>${v.producto}</td>
-      <td>${v.qty}</td>
-      <td>$${fmt(v.total)}</td>
-      <td style="color:${v.ganancia>=0?'var(--green)':'var(--red)'}">$${fmt(v.ganancia)}</td>
-      <td><span class="badge ${v.pago==='Efectivo'?'badge-green':v.pago==='Transferencia'?'badge-blue':'badge-amber'}">${v.pago}</span></td>
-      <td style="color:var(--text3);font-size:12px;">${v.obs||''}</td>
-    </tr>`
-  ).join('');
+  // Group by date
+  const byDate = {};
+  [...ventas].sort((a,b) => normalizeDate(b.fecha).localeCompare(normalizeDate(a.fecha))).forEach(v => {
+    const d = normalizeDate(v.fecha);
+    if(!byDate[d]) byDate[d] = [];
+    byDate[d].push(v);
+  });
+  
+  let rows = '';
+  for(const [fecha, dvs] of Object.entries(byDate)) {
+    const dayTotal = dvs.reduce((s,v)=>s+(Number(v.total)||0),0);
+    const dayGan = dvs.reduce((s,v)=>s+(Number(v.ganancia)||0),0);
+    rows += `<tr><td colspan="6" style="background:var(--surface2);padding:8px 12px;font-weight:600;color:var(--gold);font-size:12px;border-top:2px solid var(--border);">
+      📅 ${fmtDate(fecha)} &nbsp;·&nbsp; ${dvs.length} ventas &nbsp;·&nbsp; $${fmt(dayTotal)} &nbsp;·&nbsp; Gan: $${fmt(dayGan)}
+    </td></tr>`;
+    rows += dvs.map(v => {
+      let prod = (v.qty||1) + 'x ' + (v.producto||'');
+      if(v.obs && v.obs.match(/x10|x15|x45/)) prod = v.obs;
+      else if(v.yerba > 0) prod += ' + ' + v.yerba + 'x Yerba';
+      else if(v.bidon > 0) prod += ' + ' + v.bidon + 'x Bidón';
+      return `<tr>
+        <td style="color:var(--text3);font-size:11px;">${v.hora||'—'}</td>
+        <td><strong>#${v.clienteNum||'?'}</strong> ${v.clienteNombre||''}</td>
+        <td style="font-size:12px;">${prod}</td>
+        <td>$${fmt(Number(v.total)||0)}</td>
+        <td style="color:${Number(v.ganancia)>=0?'var(--green)':'var(--red)'}">$${fmt(Number(v.ganancia)||0)}</td>
+        <td><span class="badge ${v.pago==='Efectivo'?'badge-green':v.pago==='Transferencia'?'badge-blue':'badge-amber'}">${v.pago||''}</span></td>
+      </tr>`;
+    }).join('');
+  }
+  body.innerHTML = rows;
 }
 
 function exportCSV() {
@@ -1262,6 +1281,8 @@ function calcStatsFromVentas(mesNombre) {
   const num = mesesNums[mesNombre];
   const ventas = getData('ventas').filter(v => v.fecha && normalizeDate(v.fecha).startsWith('2026-'+num));
   if(!ventas.length) return null;
+  // Debug
+  console.log('Junio ventas encontradas:', ventas.length, 'de', getData('ventas').length);
   const fact = ventas.reduce((s,v)=>s+(Number(v.total)||0),0);
   const gan = ventas.reduce((s,v)=>s+(Number(v.ganancia)||0),0);
   const efec = ventas.reduce((s,v)=>s+(Number(v.efectivo)||0),0);
