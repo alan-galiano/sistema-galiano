@@ -590,48 +590,6 @@ function getSingle(key, def) {
 }
 
 
-// ============================================================
-// GOOGLE SHEETS API
-// ============================================================
-const GS_URL = 'https://script.google.com/macros/s/AKfycbzbx5CLF5op8s8hxaOEGz5xjqrrrMG95G59c9YADpJrCPi7yOMDdiS5Zu0PK4jP0d8z/exec';
-let gsReady = false;
-
-async function gsCall(params) {
-  try {
-    const url = GS_URL + '?' + Object.entries(params).map(([k,v]) => k+'='+encodeURIComponent(v)).join('&');
-    const res = await fetch(url);
-    const data = await res.json();
-    return data;
-  } catch(e) {
-    console.error('GS Error:', e);
-    return null;
-  }
-}
-
-async function gsSaveVenta(venta) {
-  await gsCall({action:'addVenta', data:JSON.stringify(venta)});
-}
-
-async function gsSaveGasto(gasto) {
-  await gsCall({action:'addGasto', data:JSON.stringify(gasto)});
-}
-
-async function gsSaveKm(km) {
-  await gsCall({action:'addKm', data:JSON.stringify(km)});
-}
-
-async function gsSaveCliente(cliente) {
-  await gsCall({action:'addCliente', data:JSON.stringify(cliente)});
-}
-
-async function gsUpdateCliente(cliente) {
-  await gsCall({action:'updateCliente', data:JSON.stringify(cliente)});
-}
-
-async function gsInit() {
-  await gsCall({action:'init'});
-}
-
 async function gsLoadAll() {
   const data = await gsCall({action:'getAll'});
   if (!data) return false;
