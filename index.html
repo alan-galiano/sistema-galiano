@@ -610,25 +610,48 @@ function gsSaveKm(k) { gsCall({action:'addKm', data:JSON.stringify(k)}); }
 function gsSaveCliente(c) { gsCall({action:'addCliente', data:JSON.stringify(c)}); }
 function gsUpdateCliente(c) { gsCall({action:'updateCliente', data:JSON.stringify(c)}); }
 
+function fixGSValue(v) {
+  if(typeof v === 'string' && v.includes('T')) {
+    if(v.startsWith('1899') || v.startsWith('1900')) return v.split('T')[1].slice(0,5);
+    return v.split('T')[0];
+  }
+  return v;
+}
+
+function cleanGSRow(row) {
+  const cleaned = {};
+  for(const k in row) { cleaned[k] = fixGSValue(row[k]); }
+  return cleaned;
+}
+
 async function gsLoadAll() {
   try {
     const data = await gsCall({action:'getAll'});
     if (!data) return false;
-    // Solo actualizar si GS tiene mas datos que el cache local
-    const localVentas = getData('ventas');
-    const localClientes = getData('clients');
-    if (data.ventas && data.ventas.length > localVentas.length) setData('ventas', data.ventas);
-    if (data.clientes && data.clientes.length > localClientes.length) setData('clients', data.clientes);
+    // MERGE: agregar registros de GS que no existan en localStorage
+    if (data.ventas && data.ventas.length > 0) {
+      const existing = getData('ventas');
+      const existingIds = new Set(existing.map(v => String(v.id)));
+      const newItems = data.ventas.map(cleanGSRow).filter(v => !existingIds.has(String(v.id)));
+      if(newItems.length > 0) setData('ventas', [...existing, ...newItems]);
+    }
+    if (data.clientes && data.clientes.length > getData('clients').length) {
+      setData('clients', data.clientes.map(cleanGSRow));
+    }
     if (data.gastos && data.gastos.length > 0) {
-      const localGastos = getData('gastos');
-      if (data.gastos.length > localGastos.length) setData('gastos', data.gastos);
+      const existing = getData('gastos');
+      const existingIds = new Set(existing.map(g => String(g.id)));
+      const newItems = data.gastos.map(cleanGSRow).filter(g => !existingIds.has(String(g.id)));
+      if(newItems.length > 0) setData('gastos', [...existing, ...newItems]);
     }
     if (data.km && data.km.length > 0) {
-      const localKm = getData('km');
-      if (data.km.length > localKm.length) setData('km', data.km);
+      const existing = getData('km');
+      const existingIds = new Set(existing.map(k => String(k.id)));
+      const newItems = data.km.map(cleanGSRow).filter(k => !existingIds.has(String(k.id)));
+      if(newItems.length > 0) setData('km', [...existing, ...newItems]);
     }
     return true;
-  } catch(e) { return false; }
+  } catch(e) { console.error('gsLoadAll:', e); return false; }
 }
 
 // ============================================================
@@ -954,7 +977,7 @@ function renderHistorial() {
       else if(v.yerba > 0) prod += ' + ' + v.yerba + 'x Yerba';
       else if(v.bidon > 0) prod += ' + ' + v.bidon + 'x Bidón';
       return `<tr>
-        <td style="color:var(--text3);font-size:11px;">${v.hora||'—'}</td>
+        <td style="color:var(--text3);font-size:11px;">${fixGSValue(v.hora||'')||'—'}</td>
         <td><strong>#${v.clienteNum||'?'}</strong> ${v.clienteNombre||''}</td>
         <td style="font-size:12px;">${prod}</td>
         <td>$${fmt(Number(v.total)||0)}</td>
