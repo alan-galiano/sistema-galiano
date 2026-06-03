@@ -706,9 +706,12 @@ const COSTOS = { '10': 17000, '15': 25500, '45': 69000, yerba: 2300, bidon: 850 
 let PRECIOS_GENERALES = getSingle('precios', { '10': 22000, '15': 34000, '45': 77000, yerba: 4000, bidon: 1800 });
 
 function loadPrices() {
-  document.getElementById('price-10').textContent = '$' + fmt(PRECIOS_GENERALES['10']);
-  document.getElementById('price-15').textContent = '$' + fmt(PRECIOS_GENERALES['15']);
-  document.getElementById('price-45').textContent = '$' + fmt(PRECIOS_GENERALES['45']);
+  const p10 = document.getElementById('price-10');
+  const p15 = document.getElementById('price-15');
+  const p45 = document.getElementById('price-45');
+  if(p10) p10.textContent = '$' + fmt(PRECIOS_GENERALES['10']);
+  if(p15) p15.textContent = '$' + fmt(PRECIOS_GENERALES['15']);
+  if(p45) p45.textContent = '$' + fmt(PRECIOS_GENERALES['45']);
 }
 
 // ============================================================
