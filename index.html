@@ -590,22 +590,33 @@ function getSingle(key, def) {
 }
 
 
+// ============================================================
+// GOOGLE SHEETS - FUENTE PRINCIPAL DE DATOS
+// ============================================================
+const GS_URL = 'https://script.google.com/macros/s/AKfycbzbx5CLF5op8s8hxaOEGz5xjqrrrMG95G59c9YADpJrCPi7yOMDdiS5Zu0PK4jP0d8z/exec';
+
+function gsCall(params) {
+  const url = GS_URL + '?' + Object.entries(params).map(([k,v]) => k+'='+encodeURIComponent(v)).join('&');
+  return fetch(url).then(r => r.json()).catch(e => { console.error('GS Error:', e); return null; });
+}
+
+function gsSaveVenta(v) { gsCall({action:'addVenta', data:JSON.stringify(v)}); }
+function gsSaveGasto(g) { gsCall({action:'addGasto', data:JSON.stringify(g)}); }
+function gsSaveKm(k) { gsCall({action:'addKm', data:JSON.stringify(k)}); }
+function gsSaveCliente(c) { gsCall({action:'addCliente', data:JSON.stringify(c)}); }
+function gsUpdateCliente(c) { gsCall({action:'updateCliente', data:JSON.stringify(c)}); }
+
 async function gsLoadAll() {
-  const data = await gsCall({action:'getAll'});
-  if (!data) return false;
-  if (data.ventas && data.ventas.length > 0) {
-    setData('ventas', data.ventas);
-  }
-  if (data.clientes && data.clientes.length > 0) {
-    setData('clients', data.clientes);
-  }
-  if (data.gastos && data.gastos.length > 0) {
-    setData('gastos', data.gastos);
-  }
-  if (data.km && data.km.length > 0) {
-    setData('km', data.km);
-  }
-  return true;
+  try {
+    const data = await gsCall({action:'getAll'});
+    if (!data) return false;
+    // Google Sheets es la fuente principal - siempre reemplaza localStorage
+    if (data.ventas && data.ventas.length > 0) setData('ventas', data.ventas);
+    if (data.clientes && data.clientes.length > 0) setData('clients', data.clientes);
+    if (data.gastos && data.gastos.length > 0) setData('gastos', data.gastos);
+    if (data.km && data.km.length > 0) setData('km', data.km);
+    return true;
+  } catch(e) { return false; }
 }
 
 // ============================================================
@@ -623,11 +634,15 @@ function doLogin() {
 }
 
 // ============================================================
-// APP INIT
+// APP INIT - Carga desde Google Sheets primero
 // ============================================================
-function initApp() {
+async function initApp() {
   setDateInputsToday();
   updateDate();
+  document.getElementById('topbar-title').textContent = '⏳ Sincronizando...';
+  const ok = await gsLoadAll();
+  document.getElementById('topbar-title').textContent = ok ? '✓ Datos actualizados' : '⚠ Sin conexión';
+  setTimeout(() => { document.getElementById('topbar-title').textContent = 'Dashboard'; }, 2500);
   initDashboard();
   renderVentasHoy();
   renderHistorial();
