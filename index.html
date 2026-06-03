@@ -279,6 +279,10 @@
           <div class="card-title">Top 10 clientes — acumulado anual</div>
           <div style="position:relative;height:300px;"><canvas id="chartTop"></canvas></div>
         </div>
+        <div class="card" id="dash-gastos-card" style="margin-top:16px;">
+          <div class="card-title">Resultado real del mes</div>
+          <div id="dash-gastos-detail"></div>
+        </div>
       </div>
 
       <!-- NUEVA VENTA -->
@@ -610,11 +614,19 @@ async function gsLoadAll() {
   try {
     const data = await gsCall({action:'getAll'});
     if (!data) return false;
-    // Google Sheets es la fuente principal - siempre reemplaza localStorage
-    if (data.ventas && data.ventas.length > 0) setData('ventas', data.ventas);
-    if (data.clientes && data.clientes.length > 0) setData('clients', data.clientes);
-    if (data.gastos && data.gastos.length > 0) setData('gastos', data.gastos);
-    if (data.km && data.km.length > 0) setData('km', data.km);
+    // Solo actualizar si GS tiene mas datos que el cache local
+    const localVentas = getData('ventas');
+    const localClientes = getData('clients');
+    if (data.ventas && data.ventas.length > localVentas.length) setData('ventas', data.ventas);
+    if (data.clientes && data.clientes.length > localClientes.length) setData('clients', data.clientes);
+    if (data.gastos && data.gastos.length > 0) {
+      const localGastos = getData('gastos');
+      if (data.gastos.length > localGastos.length) setData('gastos', data.gastos);
+    }
+    if (data.km && data.km.length > 0) {
+      const localKm = getData('km');
+      if (data.km.length > localKm.length) setData('km', data.km);
+    }
     return true;
   } catch(e) { return false; }
 }
@@ -1259,6 +1271,7 @@ function initDashboard() {
   ).join('');
   updateDashMetrics();
   if(!chartsBuilt) { buildDashCharts(); chartsBuilt=true; }
+  renderDashGastos();
 }
 
 function switchDashMes(mes) {
@@ -1274,6 +1287,7 @@ function switchDashMes(mes) {
     donaChart.data.datasets[0].data = [d.c10,d.c15,d.c45];
     donaChart.update();
   }
+  renderDashGastos();
 }
 
 function calcStatsFromVentas(mesNombre) {
@@ -1341,6 +1355,87 @@ function updateDashMetrics() {
     <div class="metric-card"><div class="metric-label">KG total</div><div class="metric-value">${(((d.kg_b||0)+(d.kg_p||0))/1000).toFixed(1)}t</div><div class="metric-sub">${((d.kg_b||0)+(d.kg_p||0)).toLocaleString()} kg</div></div>
     <div class="metric-card"><div class="metric-label">Efectivo</div><div class="metric-value" style="font-size:18px;">${fmtM(d.efec)}</div><div class="metric-sub">${(d.efec/d.fact*100).toFixed(0)}% del total</div></div>
   `;
+}
+
+
+function renderDashGastos() {
+  const el = document.getElementById('dash-gastos-detail');
+  if(!el) return;
+  
+  const mesesNums = {Enero:'01',Febrero:'02',Marzo:'03',Abril:'04',Mayo:'05',Junio:'06',Julio:'07',Agosto:'08',Septiembre:'09',Octubre:'10',Noviembre:'11',Diciembre:'12'};
+  let gastosMes;
+  
+  if(dashMes === 'Anual') {
+    gastosMes = getData('gastos');
+  } else {
+    const num = mesesNums[dashMes];
+    gastosMes = getData('gastos').filter(g => g.fecha && normalizeDate(g.fecha).startsWith('2026-'+num));
+  }
+  
+  // Separar por categoria
+  const diarios = gastosMes.filter(g => g.cat === 'Otros' || g.desc?.toLowerCase().includes('diario'));
+  const combustible = gastosMes.filter(g => g.cat === 'Combustible');
+  const fijos = gastosMes.filter(g => g.cat !== 'Combustible' && g.cat !== 'Otros' && !g.desc?.toLowerCase().includes('diario'));
+  
+  const totalDiarios = diarios.reduce((s,g)=>s+(Number(g.monto)||0),0);
+  const totalComb = combustible.reduce((s,g)=>s+(Number(g.monto)||0),0);
+  const totalFijos = fijos.reduce((s,g)=>s+(Number(g.monto)||0),0);
+  const totalGastos = totalDiarios + totalComb + totalFijos;
+  
+  // Calcular litros de combustible
+  const litrosTotal = combustible.reduce((s,g) => {
+    const match = String(g.desc||'').match(/(\d+)L/);
+    return s + (match ? parseInt(match[1]) : 0);
+  }, 0);
+  
+  // Ganancia bruta del mes
+  const statsMes = dashMes === 'Anual' 
+    ? MESES.map(m=>getStatsForMes(m)).reduce((a,m)=>({gan:(a.gan||0)+(m.gan||0),fact:(a.fact||0)+(m.fact||0)}),{})
+    : getStatsForMes(dashMes);
+  const ganBruta = Number(statsMes?.gan||0);
+  const ganNeta = ganBruta - totalGastos;
+  const margenNeto = statsMes?.fact > 0 ? (ganNeta/statsMes.fact*100).toFixed(1) : 0;
+  
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px;">
+      <div class="metric-card">
+        <div class="metric-label">Gastos diarios</div>
+        <div class="metric-value" style="font-size:18px;color:var(--red);">$${fmt(totalDiarios)}</div>
+        <div class="metric-sub">${diarios.length} registros</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Combustible</div>
+        <div class="metric-value" style="font-size:18px;color:var(--red);">$${fmt(totalComb)}</div>
+        <div class="metric-sub">${litrosTotal > 0 ? litrosTotal+'L cargados' : combustible.length+' cargas'}</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Gastos fijos</div>
+        <div class="metric-value" style="font-size:18px;color:var(--red);">$${fmt(totalFijos)}</div>
+        <div class="metric-sub">${fijos.length} registros</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total gastos</div>
+        <div class="metric-value" style="font-size:18px;color:var(--red);">$${fmt(totalGastos)}</div>
+        <div class="metric-sub">del período</div>
+      </div>
+    </div>
+    <div style="background:rgba(201,168,76,0.08);border:1px solid var(--gold-dim);border-radius:var(--radius);padding:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center;">
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Ganancia bruta</div>
+        <div style="font-size:22px;font-weight:700;color:var(--gold);">$${fmt(ganBruta)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">− Total gastos</div>
+        <div style="font-size:22px;font-weight:700;color:var(--red);">$${fmt(totalGastos)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">= Ganancia neta</div>
+        <div style="font-size:22px;font-weight:700;color:${ganNeta>=0?'var(--green)':'var(--red)'};">$${fmt(ganNeta)}</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px;">${margenNeto}% sobre facturado</div>
+      </div>
+    </div>
+  `;
+  renderDashGastos();
 }
 
 function buildDashCharts() {
