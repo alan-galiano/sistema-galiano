@@ -1251,24 +1251,47 @@ function switchDashMes(mes) {
   }
 }
 
+function calcStatsFromVentas(mesNombre) {
+  const mesesNums = {Enero:'01',Febrero:'02',Marzo:'03',Abril:'04',Mayo:'05',Junio:'06',Julio:'07',Agosto:'08',Septiembre:'09',Octubre:'10',Noviembre:'11',Diciembre:'12'};
+  const num = mesesNums[mesNombre];
+  const ventas = getData('ventas').filter(v => v.fecha && v.fecha.startsWith('2026-'+num));
+  if(!ventas.length) return null;
+  const fact = ventas.reduce((s,v)=>s+(Number(v.total)||0),0);
+  const gan = ventas.reduce((s,v)=>s+(Number(v.ganancia)||0),0);
+  const efec = ventas.reduce((s,v)=>s+(Number(v.efectivo)||0),0);
+  const transf = ventas.reduce((s,v)=>s+(Number(v.transfer)||0),0);
+  const c10 = ventas.filter(v=>v.producto==='10kg').reduce((s,v)=>s+(Number(v.qty)||0),0);
+  const c15 = ventas.filter(v=>v.producto==='15kg').reduce((s,v)=>s+(Number(v.qty)||0),0);
+  const c45 = ventas.filter(v=>v.producto==='45kg').reduce((s,v)=>s+(Number(v.qty)||0),0);
+  return {fact,gan,ventas:ventas.length,efec,transf,c10,c15,c45,kg_b:c10*10+c15*15,kg_p:c45*45};
+}
+
+function getStatsForMes(mes) {
+  // Si el mes tiene datos hardcodeados y son > 0, usarlos
+  if(STATS[mes] && STATS[mes].fact > 0) return STATS[mes];
+  // Si no, calcular desde ventas reales
+  return calcStatsFromVentas(mes) || STATS[mes];
+}
+
 function updateDashMetrics() {
   const grid = document.getElementById('dash-metrics');
   if(!grid) return;
   
   let d, prevGan = null;
   if(dashMes === 'Anual') {
-    d = Object.values(STATS).reduce((acc,m) => ({
-      fact: (acc.fact||0)+m.fact, gan: (acc.gan||0)+m.gan,
-      ventas: (acc.ventas||0)+m.ventas, efec: (acc.efec||0)+m.efec,
-      transf: (acc.transf||0)+m.transf, c10: (acc.c10||0)+m.c10,
-      c15: (acc.c15||0)+m.c15, c45: (acc.c45||0)+m.c45,
-      kg_b: (acc.kg_b||0)+m.kg_b, kg_p: (acc.kg_p||0)+m.kg_p
+    d = MESES.map(m => getStatsForMes(m)).reduce((acc,m) => ({
+      fact: (acc.fact||0)+(m.fact||0), gan: (acc.gan||0)+(m.gan||0),
+      ventas: (acc.ventas||0)+(m.ventas||0), efec: (acc.efec||0)+(m.efec||0),
+      transf: (acc.transf||0)+(m.transf||0), c10: (acc.c10||0)+(m.c10||0),
+      c15: (acc.c15||0)+(m.c15||0), c45: (acc.c45||0)+(m.c45||0),
+      kg_b: (acc.kg_b||0)+(m.kg_b||0), kg_p: (acc.kg_p||0)+(m.kg_p||0)
     }), {});
   } else {
-    d = STATS[dashMes];
+    d = getStatsForMes(dashMes);
     const idx = MESES.indexOf(dashMes);
-    if(idx > 0) prevGan = STATS[MESES[idx-1]].gan;
+    if(idx > 0) prevGan = getStatsForMes(MESES[idx-1]).gan;
   }
+  if(!d || !d.fact) { grid.innerHTML = '<div class="metric-card" style="grid-column:1/-1;text-align:center;color:var(--text3);">Sin ventas en este período</div>'; return; }
   
   const margen = (d.gan/d.fact*100).toFixed(1);
   const ticket = Math.round(d.fact/d.ventas);
