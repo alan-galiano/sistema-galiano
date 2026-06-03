@@ -1178,13 +1178,20 @@ function renderKm() {
 // ============================================================
 // DASHBOARD CON GRAFICOS
 // ============================================================
-const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo"];
+const MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
 const STATS = {
   "Enero":   {"fact":12026500,  "gan":4722600,  "ventas":271, "efec":5095800,  "transf":6922100,  "c10":223, "c15":45,  "c45":89,  "kg_b":2905, "kg_p":4005},
   "Febrero": {"fact":13006600,  "gan":5091200,  "ventas":312, "efec":5998200,  "transf":7008400,  "c10":264, "c15":58,  "c45":88,  "kg_b":3430, "kg_p":3960},
   "Marzo":   {"fact":19275000,  "gan":6209050,  "ventas":415, "efec":7533300,  "transf":11632200, "c10":345, "c15":76,  "c45":127, "kg_b":4490, "kg_p":5715},
   "Abril":   {"fact":23249400,  "gan":7533350,  "ventas":440, "efec":8636000,  "transf":14448400, "c10":387, "c15":97,  "c45":129, "kg_b":5000, "kg_p":5805},
-  "Mayo":    {"fact":36119000,  "gan":11849450, "ventas":635, "efec":15863500, "transf":20255500, "c10":630, "c15":131, "c45":169, "kg_b":9260, "kg_p":7605}
+  "Mayo":    {"fact":36119000,  "gan":11849450, "ventas":635, "efec":15863500, "transf":20255500, "c10":630, "c15":131, "c45":169, "kg_b":9260, "kg_p":7605},
+  "Junio":      {"fact":0, "gan":0, "ventas":0, "efec":0, "transf":0, "c10":0, "c15":0, "c45":0, "kg_b":0, "kg_p":0},
+  "Julio":      {"fact":0, "gan":0, "ventas":0, "efec":0, "transf":0, "c10":0, "c15":0, "c45":0, "kg_b":0, "kg_p":0},
+  "Agosto":     {"fact":0, "gan":0, "ventas":0, "efec":0, "transf":0, "c10":0, "c15":0, "c45":0, "kg_b":0, "kg_p":0},
+  "Septiembre": {"fact":0, "gan":0, "ventas":0, "efec":0, "transf":0, "c10":0, "c15":0, "c45":0, "kg_b":0, "kg_p":0},
+  "Octubre":    {"fact":0, "gan":0, "ventas":0, "efec":0, "transf":0, "c10":0, "c15":0, "c45":0, "kg_b":0, "kg_p":0},
+  "Noviembre":  {"fact":0, "gan":0, "ventas":0, "efec":0, "transf":0, "c10":0, "c15":0, "c45":0, "kg_b":0, "kg_p":0},
+  "Diciembre":  {"fact":0, "gan":0, "ventas":0, "efec":0, "transf":0, "c10":0, "c15":0, "c45":0, "kg_b":0, "kg_p":0}
 };
 const TOP10 = [
   {"n":"OTNIEL","f":2968700},{"n":"FILOMENA","f":2582500},{"n":"LUCHO","f":2381800},
