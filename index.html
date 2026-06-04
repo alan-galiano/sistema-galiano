@@ -1313,13 +1313,26 @@ function switchDashMes(mes) {
   renderDashGastos();
 }
 
+// Cache para evitar recalcular en cada cambio de mes
+let _ventasCache = null;
+let _statsCache = {};
+
+function getVentasCache() {
+  if(!_ventasCache) _ventasCache = getData('ventas');
+  return _ventasCache;
+}
+
+function invalidateCache() {
+  _ventasCache = null;
+  _statsCache = {};
+}
+
 function calcStatsFromVentas(mesNombre) {
+  if(_statsCache[mesNombre]) return _statsCache[mesNombre];
   const mesesNums = {Enero:'01',Febrero:'02',Marzo:'03',Abril:'04',Mayo:'05',Junio:'06',Julio:'07',Agosto:'08',Septiembre:'09',Octubre:'10',Noviembre:'11',Diciembre:'12'};
   const num = mesesNums[mesNombre];
-  const ventas = getData('ventas').filter(v => v.fecha && normalizeDate(v.fecha).startsWith('2026-'+num));
+  const ventas = getVentasCache().filter(v => v.fecha && normalizeDate(v.fecha).startsWith('2026-'+num));
   if(!ventas.length) return null;
-  // Debug
-  console.log('Junio ventas encontradas:', ventas.length, 'de', getData('ventas').length);
   const fact = ventas.reduce((s,v)=>s+(Number(v.total)||0),0);
   const gan = ventas.reduce((s,v)=>s+(Number(v.ganancia)||0),0);
   const efec = ventas.reduce((s,v)=>s+(Number(v.efectivo)||0),0);
@@ -1327,13 +1340,13 @@ function calcStatsFromVentas(mesNombre) {
   const c10 = ventas.filter(v=>v.producto==='10kg').reduce((s,v)=>s+(Number(v.qty)||0),0);
   const c15 = ventas.filter(v=>v.producto==='15kg').reduce((s,v)=>s+(Number(v.qty)||0),0);
   const c45 = ventas.filter(v=>v.producto==='45kg').reduce((s,v)=>s+(Number(v.qty)||0),0);
-  return {fact,gan,ventas:ventas.length,efec,transf,c10,c15,c45,kg_b:c10*10+c15*15,kg_p:c45*45};
+  const result = {fact,gan,ventas:ventas.length,efec,transf,c10,c15,c45,kg_b:c10*10+c15*15,kg_p:c45*45};
+  _statsCache[mesNombre] = result;
+  return result;
 }
 
 function getStatsForMes(mes) {
-  // Si el mes tiene datos hardcodeados y son > 0, usarlos
   if(STATS[mes] && STATS[mes].fact > 0) return STATS[mes];
-  // Si no, calcular desde ventas reales
   return calcStatsFromVentas(mes) || STATS[mes];
 }
 
