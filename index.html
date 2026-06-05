@@ -294,6 +294,10 @@
           <div>
             <div class="card">
               <div class="card-title">Cliente</div>
+                        <div class="field" style="margin-bottom:8px;">
+                                    <label style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;">Fecha de venta</label>
+                                                <input type="date" id="v-fecha" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text);font-size:15px;" />
+                                                          </div>
               <div class="field">
                 <label>Buscar cliente</label>
                 <input type="text" id="v-search" placeholder="Nombre o número de cliente..." oninput="searchClient()" />
@@ -690,7 +694,7 @@ async function initApp() {
 function setDateInputsToday() {
   const today = new Date().toISOString().split('T')[0];
   const thisMonth = today.slice(0,7);
-  ['g-fecha','km-fecha'].forEach(id => { const el = document.getElementById(id); if(el) el.value = today; });
+  ['g-fecha','km-fecha'].forEach(id => { const el = document.getElementById(id); if(el) el.value = today; }); const vf = document.getElementById('v-fecha'); if(vf) vf.value = yesterday;
   ['hist-mes','g-mes'].forEach(id => { const el = document.getElementById(id); if(el) el.value = thisMonth; });
 }
 
@@ -877,7 +881,7 @@ function saveVenta() {
   
   const venta = {
     id: Date.now(),
-    fecha: today(),
+    fecha: document.getElementById('v-fecha').value || today(),
     clienteId: selectedClient.id,
     clienteNombre: selectedClient.nombre,
     clienteNum: selectedClient.num,
