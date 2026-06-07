@@ -170,63 +170,7 @@
   .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
   .overlay.open { display: block; }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
-function parsearCargaRapida() {
-  const fecha = document.getElementById('cr-fecha').value;
-  if (!fecha) { toast('Elegí una fecha primero','error'); return; }
-  const texto = document.getElementById('cr-input').value.trim();
-  if (!texto) { toast('No hay ventas para cargar','error'); return; }
-  const lineas = texto.split('\n').map(l => l.trim()).filter(l => l);
-  const clientes = getData('clients');
-  const resultado = document.getElementById('cr-resultado');
-  let ok = 0, errores = [];
-  lineas.forEach((linea, idx) => {
-    const partes = linea.split('|').map(p => p.trim());
-    if (partes.length < 9) { errores.push('Línea ' + (idx+1) + ': formato incorrecto'); return; }
-    const [nombreCliente, g10, g15, g45, yerba, bidon, total, efectivo, transferencia] = partes;
-    const g10n = parseInt(g10)||0, g15n = parseInt(g15)||0, g45n = parseInt(g45)||0;
-    const yerban = parseInt(yerba)||0, bidonn = parseInt(bidon)||0;
-    const totaln = parseInt(total)||0, efectivon = parseInt(efectivo)||0, transfern = parseInt(transferencia)||0;
-    const cliente = clientes.find(c => c.nombre.toUpperCase() === nombreCliente.toUpperCase());
-    if (!cliente) { errores.push('Línea ' + (idx+1) + ': cliente "' + nombreCliente + '" no encontrado'); return; }
-    let producto = '10kg', qty = g10n;
-    if (g45n > 0) { producto = '45kg'; qty = g45n; }
-    else if (g15n > 0) { producto = '15kg'; qty = g15n; }
-    const costo = (g10n * COSTOS['10']) + (g15n * COSTOS['15']) + (g45n * COSTOS['45']) + (yerban * COSTOS.yerba) + (bidonn * COSTOS.bidon);
-    const ganancia = totaln - costo;
-    let pago = 'Efectivo';
-    if (efectivon > 0 && transfern > 0) pago = 'Mixto';
-    else if (transfern > 0) pago = 'Transferencia';
-    const venta = {
-      id: Date.now() + idx,
-      fecha: fecha,
-      clienteId: cliente.id,
-      clienteNombre: cliente.nombre,
-      clienteNum: cliente.num,
-      producto: producto,
-      qty: qty, price: 0, envase: 0,
-      yerba: yerban, bidon: bidonn,
-      total: totaln, ganancia: ganancia, costo: costo,
-      pago: pago, efectivo: efectivon, transfer: transfern,
-      obs: '', hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'})
-    };
-    const ventas = getData('ventas');
-    ventas.push(venta);
-    setData('ventas', ventas);
-    gsSaveVenta(venta);
-    ok++;
-  });
-  let html = '';
-  if (ok > 0) html += '<div style="color:var(--green);margin-bottom:12px;font-weight:600;">✅ ' + ok + ' venta' + (ok>1?'s':'') + ' cargada' + (ok>1?'s':'') + ' correctamente</div>';
-  if (errores.length > 0) {
-    html += '<div style="color:var(--red);font-weight:600;margin-bottom:8px;">⚠️ ' + errores.length + ' error' + (errores.length>1?'es':'') + ':</div>';
-    errores.forEach(e => { html += '<div style="color:var(--red);font-size:12px;margin-bottom:4px;">• ' + e + '</div>'; });
-  }
-  resultado.innerHTML = html;
-  if (ok > 0) { toast('✓ ' + ok + ' ventas cargadas'); document.getElementById('cr-input').value = ''; }
-}
-
-</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 </head>
 <body>
 
@@ -1765,6 +1709,61 @@ function renderDashboard() {
     if(g.length === 0) localStorage.setItem('gastos', JSON.stringify([{"id": 999001, "fecha": "2026-06-01", "cat": "Otros", "desc": "Gastos diarios", "monto": 29600}]));
   } catch(e) { console.log('Error:', e); }
 })();
+
+function parsearCargaRapida() {
+  const fecha = document.getElementById('cr-fecha').value;
+  if (!fecha) { toast('Elegí una fecha primero','error'); return; }
+  const texto = document.getElementById('cr-input').value.trim();
+  if (!texto) { toast('No hay ventas para cargar','error'); return; }
+  const lineas = texto.split('\n').map(l => l.trim()).filter(l => l);
+  const clientes = getData('clients');
+  const resultado = document.getElementById('cr-resultado');
+  let ok = 0, errores = [];
+  lineas.forEach((linea, idx) => {
+    const partes = linea.split('|').map(p => p.trim());
+    if (partes.length < 9) { errores.push('Línea ' + (idx+1) + ': formato incorrecto'); return; }
+    const [nombreCliente, g10, g15, g45, yerba, bidon, total, efectivo, transferencia] = partes;
+    const g10n = parseInt(g10)||0, g15n = parseInt(g15)||0, g45n = parseInt(g45)||0;
+    const yerban = parseInt(yerba)||0, bidonn = parseInt(bidon)||0;
+    const totaln = parseInt(total)||0, efectivon = parseInt(efectivo)||0, transfern = parseInt(transferencia)||0;
+    const cliente = clientes.find(c => c.nombre.toUpperCase() === nombreCliente.toUpperCase());
+    if (!cliente) { errores.push('Línea ' + (idx+1) + ': cliente "' + nombreCliente + '" no encontrado'); return; }
+    let producto = '10kg', qty = g10n;
+    if (g45n > 0) { producto = '45kg'; qty = g45n; }
+    else if (g15n > 0) { producto = '15kg'; qty = g15n; }
+    const costo = (g10n * COSTOS['10']) + (g15n * COSTOS['15']) + (g45n * COSTOS['45']) + (yerban * COSTOS.yerba) + (bidonn * COSTOS.bidon);
+    const ganancia = totaln - costo;
+    let pago = 'Efectivo';
+    if (efectivon > 0 && transfern > 0) pago = 'Mixto';
+    else if (transfern > 0) pago = 'Transferencia';
+    const venta = {
+      id: Date.now() + idx,
+      fecha: fecha,
+      clienteId: cliente.id,
+      clienteNombre: cliente.nombre,
+      clienteNum: cliente.num,
+      producto: producto,
+      qty: qty, price: 0, envase: 0,
+      yerba: yerban, bidon: bidonn,
+      total: totaln, ganancia: ganancia, costo: costo,
+      pago: pago, efectivo: efectivon, transfer: transfern,
+      obs: '', hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'})
+    };
+    const ventas = getData('ventas');
+    ventas.push(venta);
+    setData('ventas', ventas);
+    gsSaveVenta(venta);
+    ok++;
+  });
+  let html = '';
+  if (ok > 0) html += '<div style="color:var(--green);margin-bottom:12px;font-weight:600;">✅ ' + ok + ' venta' + (ok>1?'s':'') + ' cargada' + (ok>1?'s':'') + ' correctamente</div>';
+  if (errores.length > 0) {
+    html += '<div style="color:var(--red);font-weight:600;margin-bottom:8px;">⚠️ ' + errores.length + ' error' + (errores.length>1?'es':'') + ':</div>';
+    errores.forEach(e => { html += '<div style="color:var(--red);font-size:12px;margin-bottom:4px;">• ' + e + '</div>'; });
+  }
+  resultado.innerHTML = html;
+  if (ok > 0) { toast('✓ ' + ok + ' ventas cargadas'); document.getElementById('cr-input').value = ''; }
+}
 </script>
 </body>
 </html>
