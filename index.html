@@ -170,7 +170,63 @@
   .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 99; }
   .overlay.open { display: block; }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
+function parsearCargaRapida() {
+  const fecha = document.getElementById('cr-fecha').value;
+  if (!fecha) { toast('Elegí una fecha primero','error'); return; }
+  const texto = document.getElementById('cr-input').value.trim();
+  if (!texto) { toast('No hay ventas para cargar','error'); return; }
+  const lineas = texto.split('\n').map(l => l.trim()).filter(l => l);
+  const clientes = getData('clients');
+  const resultado = document.getElementById('cr-resultado');
+  let ok = 0, errores = [];
+  lineas.forEach((linea, idx) => {
+    const partes = linea.split('|').map(p => p.trim());
+    if (partes.length < 9) { errores.push('Línea ' + (idx+1) + ': formato incorrecto'); return; }
+    const [nombreCliente, g10, g15, g45, yerba, bidon, total, efectivo, transferencia] = partes;
+    const g10n = parseInt(g10)||0, g15n = parseInt(g15)||0, g45n = parseInt(g45)||0;
+    const yerban = parseInt(yerba)||0, bidonn = parseInt(bidon)||0;
+    const totaln = parseInt(total)||0, efectivon = parseInt(efectivo)||0, transfern = parseInt(transferencia)||0;
+    const cliente = clientes.find(c => c.nombre.toUpperCase() === nombreCliente.toUpperCase());
+    if (!cliente) { errores.push('Línea ' + (idx+1) + ': cliente "' + nombreCliente + '" no encontrado'); return; }
+    let producto = '10kg', qty = g10n;
+    if (g45n > 0) { producto = '45kg'; qty = g45n; }
+    else if (g15n > 0) { producto = '15kg'; qty = g15n; }
+    const costo = (g10n * COSTOS['10']) + (g15n * COSTOS['15']) + (g45n * COSTOS['45']) + (yerban * COSTOS.yerba) + (bidonn * COSTOS.bidon);
+    const ganancia = totaln - costo;
+    let pago = 'Efectivo';
+    if (efectivon > 0 && transfern > 0) pago = 'Mixto';
+    else if (transfern > 0) pago = 'Transferencia';
+    const venta = {
+      id: Date.now() + idx,
+      fecha: fecha,
+      clienteId: cliente.id,
+      clienteNombre: cliente.nombre,
+      clienteNum: cliente.num,
+      producto: producto,
+      qty: qty, price: 0, envase: 0,
+      yerba: yerban, bidon: bidonn,
+      total: totaln, ganancia: ganancia, costo: costo,
+      pago: pago, efectivo: efectivon, transfer: transfern,
+      obs: '', hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'})
+    };
+    const ventas = getData('ventas');
+    ventas.push(venta);
+    setData('ventas', ventas);
+    gsSaveVenta(venta);
+    ok++;
+  });
+  let html = '';
+  if (ok > 0) html += '<div style="color:var(--green);margin-bottom:12px;font-weight:600;">✅ ' + ok + ' venta' + (ok>1?'s':'') + ' cargada' + (ok>1?'s':'') + ' correctamente</div>';
+  if (errores.length > 0) {
+    html += '<div style="color:var(--red);font-weight:600;margin-bottom:8px;">⚠️ ' + errores.length + ' error' + (errores.length>1?'es':'') + ':</div>';
+    errores.forEach(e => { html += '<div style="color:var(--red);font-size:12px;margin-bottom:4px;">• ' + e + '</div>'; });
+  }
+  resultado.innerHTML = html;
+  if (ok > 0) { toast('✓ ' + ok + ' ventas cargadas'); document.getElementById('cr-input').value = ''; }
+}
+
+</script>
 </head>
 <body>
 
@@ -217,7 +273,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
           Clientes
         </div>
-        <div class="nav-item" onclick="goTo('carga')">           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>           Carga Rápida         </div>         <div class="nav-section">Operativo</div>
+        <div class="nav-item" onclick="goTo('carga')">           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>           Carga Rápida         </div>         <div class="nav-item" onclick="goTo('carga')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z"/><polyline points="13 2 13 9 20 9"/><line x1="12" y1="13" x2="12" y2="19"/><line x1="9" y1="16" x2="15" y2="16"/></svg>Carga Rapida</div><div class="nav-section">Operativo</div>
         <div class="nav-item" onclick="goTo('gastos')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
           Gastos
@@ -515,6 +571,43 @@
         </div>
       </div>
 
+      <!-- CARGA RÁPIDA -->
+      <div class="page" id="page-carga">
+        <div class="section-header">
+          <div class="section-title">Carga Rápida del Día</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="card">
+            <div class="card-title">Pegá las ventas del día</div>
+            <div class="field" style="margin-bottom:12px;">
+              <label>Fecha de las ventas</label>
+              <input type="date" id="cr-fecha" />
+            </div>
+            <div class="field" style="margin-bottom:12px;">
+              <label style="margin-bottom:6px;display:block;">Ventas (una por línea)</label>
+              <textarea id="cr-input" rows="14" style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;color:var(--text);font-size:13px;font-family:monospace;resize:vertical;" placeholder="SANDRA|2|0|0|0|2|54000|54000|0&#10;BRASERIA|0|0|1|0|0|94000|0|94000"></textarea>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="parsearCargaRapida()">Cargar todo</button>
+              <button class="btn" onclick="document.getElementById('cr-input').value='';document.getElementById('cr-resultado').innerHTML='';" style="background:var(--surface2);">Limpiar</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Resultado</div>
+            <div id="cr-resultado" style="font-size:13px;line-height:1.8;"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Formato de referencia</div>
+          <div style="font-size:12px;color:var(--text2);line-height:2;">
+            <div>Cada línea = una venta. Separar con | (pipe)</div>
+            <div style="font-family:monospace;background:var(--surface2);padding:10px;border-radius:var(--radius-sm);margin-top:8px;color:var(--text);font-size:12px;">
+              CLIENTE | g10 | g15 | g45 | yerba | bidon | total | efectivo | transferencia
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- KM / COMBUSTIBLE -->
       <div class="page" id="page-km">
         <div class="section-header">
@@ -708,7 +801,7 @@ function updateDate() {
 // ============================================================
 // NAVEGACIÓN
 // ============================================================
-const pageTitles = { dashboard:'Dashboard', ventas:'Nueva Venta', historial:'Historial de Ventas', clientes:'Clientes', gastos:'Gastos', km:'Km / Combustible' };
+const pageTitles = { dashboard:'Dashboard', ventas:'Nueva Venta', historial:'Historial de Ventas', clientes:'Clientes', gastos:'Gastos', km:'Km / Combustible', carga:'Carga Rápida' };
 
 function goTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -723,6 +816,7 @@ function goTo(page) {
   if(page==='gastos') renderGastos();
   if(page==='km') renderKm();
   if(page==='ventas') { renderVentasHoy(); loadPrices(); }
+  if(page==='carga') { const hoy = new Date(); hoy.setDate(hoy.getDate()-1); document.getElementById('cr-fecha').value = hoy.toISOString().split('T')[0]; }
 }
 
 function toggleSidebar() {
