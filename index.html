@@ -713,20 +713,25 @@ function doLogin() {
 // ============================================================
 // APP INIT - Carga desde Google Sheets primero
 // ============================================================
-async function initApp() {
+function initApp() {
   setDateInputsToday();
   updateDate();
-  document.getElementById('topbar-title').textContent = '⏳ Sincronizando...';
-  const ok = await gsLoadAll();
-  document.getElementById('topbar-title').textContent = ok ? '✓ Datos actualizados' : '⚠ Sin conexión';
-  setTimeout(() => { document.getElementById('topbar-title').textContent = 'Dashboard'; }, 2500);
+  // Mostrar dashboard inmediatamente con datos locales
   initDashboard();
   renderVentasHoy();
-  renderHistorial();
-  renderClients();
-  renderGastos();
-  renderKm();
   loadPrices();
+  // Sincronizar con Sheets en segundo plano sin bloquear
+  setTimeout(() => {
+    document.getElementById('topbar-title').textContent = '⏳ Sincronizando...';
+    gsLoadAll().then(ok => {
+      document.getElementById('topbar-title').textContent = ok ? '✓ Sincronizado' : '⚠ Sin conexión';
+      initDashboard();
+      renderVentasHoy();
+      setTimeout(() => { document.getElementById('topbar-title').textContent = 'Dashboard'; }, 2000);
+    }).catch(() => {
+      document.getElementById('topbar-title').textContent = 'Dashboard';
+    });
+  }, 300);
 }
 
 function setDateInputsToday() {
